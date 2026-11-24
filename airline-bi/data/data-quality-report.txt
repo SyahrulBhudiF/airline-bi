@@ -1,0 +1,32 @@
+AIRLINE DATASET - DATA QUALITY REPORT
+=============================================
+Source file        : Airline-Dataset-Updated-v2.csv.zip
+Rows in CSV        : 98,619
+Rows loaded        : 98,619
+Unique passengers  : 98,619
+Unique pilots      : 98,605
+Airports           : 9,107
+Airports tanpa IATA: 84
+Countries          : 235
+Date range         : 2022-01-01 s/d 2022-12-30
+
+Status distribution:
+  Cancelled    32,942 (33.40%)
+  On Time      32,846 (33.31%)
+  Delayed      32,831 (33.29%)
+
+Data quality notes:
+  1. Kolom 'Arrival Airport' berisi kode IATA bandara KEBERANGKATAN
+     pada hampir seluruh baris (bukan bandara tujuan).
+     Baris dengan kode berbeda dari bandara asal: 181.
+  2. Tidak ada scheduled/actual departure time, aircraft, kapasitas
+     kursi, durasi delay, atau alasan delay di dataset.
+  3. Setiap passenger_id unik; satu baris = satu passenger flight record.
+  4. Nama pilot tidak unik sepenuhnya; duplikasi nama digabung.
+  5. Tanggal memakai dua format (m/d/Y dan d-m-Y) dan sudah dinormalisasi.
+
+Model consequence:
+  KPI berbasis waktu keberangkatan, load factor, aircraft utilization,
+  dan rata-rata menit delay TIDAK dapat dihitung dari dataset ini.
+  KPI yang dipakai: volume flight, on-time rate, delay rate,
+  cancellation rate, traffic per airport/country, dan profil penumpang.

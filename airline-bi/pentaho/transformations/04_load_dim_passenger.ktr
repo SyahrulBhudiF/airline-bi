@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transformation>
+  <info>
+    <name>04_load_dim_passenger</name>
+    <description></description>
+    <extended_description/>
+    <trans_version/>
+    <trans_type>Normal</trans_type>
+    <directory>/</directory>
+    <parameters>
+
+    </parameters>
+    <log>
+      <trans-log-table><connection/><schema/><table/><size_limit_lines/><interval/><timeout_days/></trans-log-table>
+      <perf-log-table><connection/><schema/><table/><interval/><timeout_days/></perf-log-table>
+      <channel-log-table><connection/><schema/><table/><timeout_days/></channel-log-table>
+      <step-log-table><connection/><schema/><table/><timeout_days/></step-log-table>
+      <metrics-log-table><connection/><schema/><table/><timeout_days/></metrics-log-table>
+    </log>
+    <maxdate><connection/><table/><field/><offset>0</offset><maxdiff>0</maxdiff></maxdate>
+    <size_rowset>10000</size_rowset>
+    <sleep_time_empty>50</sleep_time_empty>
+    <sleep_time_full>50</sleep_time_full>
+    <unique_connections>N</unique_connections>
+    <feedback_shown>Y</feedback_shown>
+    <feedback_size>50000</feedback_size>
+    <using_thread_priorities>Y</using_thread_priorities>
+    <shared_objects_file/>
+    <capture_step_performance>N</capture_step_performance>
+    <step_performance_capturing_delay>1000</step_performance_capturing_delay>
+    <step_performance_capturing_size_limit>100</step_performance_capturing_size_limit>
+    <dependencies/>
+    <partitionschemas/>
+    <slaveservers/>
+    <clusterschemas/>
+    <created_user>-</created_user>
+    <created_date>2026/11/24 12:00:00.000</created_date>
+    <modified_user>-</modified_user>
+    <modified_date>2026/11/24 12:00:00.000</modified_date>
+    <key_for_session_key/>
+    <is_key_private>N</is_key_private>
+  </info>
+
+  <connection>
+    <name>OLTP</name>
+    <server>localhost</server>
+    <type>POSTGRESQL</type>
+    <access>Native</access>
+    <database>airline</database>
+    <port>5432</port>
+    <username>postgres</username>
+    <password>postgres</password>
+    <servername/>
+    <data_tablespace/>
+    <index_tablespace/>
+    <attributes>
+      <attribute><code>FORCE_IDENTIFIERS_TO_LOWERCASE</code><attribute>N</attribute></attribute>
+      <attribute><code>FORCE_IDENTIFIERS_TO_UPPERCASE</code><attribute>N</attribute></attribute>
+      <attribute><code>IS_CLUSTERED</code><attribute>N</attribute></attribute>
+      <attribute><code>PORT_NUMBER</code><attribute>5432</attribute></attribute>
+      <attribute><code>PRESERVE_RESERVED_WORD_CASE</code><attribute>N</attribute></attribute>
+      <attribute><code>QUOTE_ALL_FIELDS</code><attribute>N</attribute></attribute>
+      <attribute><code>SUPPORTS_BOOLEAN_DATA_TYPE</code><attribute>Y</attribute></attribute>
+      <attribute><code>SUPPORTS_TIMESTAMP_DATA_TYPE</code><attribute>Y</attribute></attribute>
+      <attribute><code>USE_POOLING</code><attribute>N</attribute></attribute>
+    </attributes>
+  </connection>
+  <connection>
+    <name>DW</name>
+    <server>localhost</server>
+    <type>POSTGRESQL</type>
+    <access>Native</access>
+    <database>airline</database>
+    <port>5432</port>
+    <username>postgres</username>
+    <password>postgres</password>
+    <servername/>
+    <data_tablespace/>
+    <index_tablespace/>
+    <attributes>
+      <attribute><code>FORCE_IDENTIFIERS_TO_LOWERCASE</code><attribute>N</attribute></attribute>
+      <attribute><code>FORCE_IDENTIFIERS_TO_UPPERCASE</code><attribute>N</attribute></attribute>
+      <attribute><code>IS_CLUSTERED</code><attribute>N</attribute></attribute>
+      <attribute><code>PORT_NUMBER</code><attribute>5432</attribute></attribute>
+      <attribute><code>PRESERVE_RESERVED_WORD_CASE</code><attribute>N</attribute></attribute>
+      <attribute><code>QUOTE_ALL_FIELDS</code><attribute>N</attribute></attribute>
+      <attribute><code>SUPPORTS_BOOLEAN_DATA_TYPE</code><attribute>Y</attribute></attribute>
+      <attribute><code>SUPPORTS_TIMESTAMP_DATA_TYPE</code><attribute>Y</attribute></attribute>
+      <attribute><code>USE_POOLING</code><attribute>N</attribute></attribute>
+    </attributes>
+  </connection>
+
+  <order>
+    <hop><from>Start</from><to>Read passengers</to><enabled>Y</enabled></hop>
+    <hop><from>Read passengers</from><to>Load dim_passenger</to><enabled>Y</enabled></hop>
+  </order>
+  <step>
+    <name>Start</name>
+    <type>Start</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <cluster_schema/>
+    <remotesteps><input></input><output></output></remotesteps>
+    <GUI><xloc>100</xloc><yloc>100</yloc><draw>Y</draw></GUI>
+  </step>
+  <step>
+    <name>Read passengers</name>
+    <type>TableInput</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <connection>OLTP</connection>
+    <sql>SELECT passenger_id, first_name, last_name, gender, age,
+       CASE WHEN age &lt; 18 THEN &#x27;0-17&#x27;
+            WHEN age &lt;= 25 THEN &#x27;18-25&#x27;
+            WHEN age &lt;= 35 THEN &#x27;26-35&#x27;
+            WHEN age &lt;= 45 THEN &#x27;36-45&#x27;
+            WHEN age &lt;= 55 THEN &#x27;46-55&#x27;
+            WHEN age &lt;= 65 THEN &#x27;56-65&#x27;
+            ELSE &#x27;66+&#x27; END AS age_band,
+       nationality
+FROM oltp.passengers</sql>
+    <limit/>
+    <lookup/>
+    <execute_each_row>N</execute_each_row>
+    <variables_active>Y</variables_active>
+    <lazy_conversion_active>N</lazy_conversion_active>
+    <cluster_schema/>
+    <remotesteps><input></input><output></output></remotesteps>
+    <GUI><xloc>250</xloc><yloc>100</yloc><draw>Y</draw></GUI>
+  </step>
+  <step>
+    <name>Load dim_passenger</name>
+    <type>InsertUpdate</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <connection>DW</connection>
+    <commit>2000</commit>
+    <update_bypassed>N</update_bypassed>
+    <lookup>
+      <schema>dw</schema>
+      <table>dim_passenger</table>
+      <key><name>passenger_id</name><field>passenger_id</field><condition>=</condition><name2/></key>
+      <value><name>passenger_id</name><rename>passenger_id</rename><update>N</update></value>
+      <value><name>first_name</name><rename>first_name</rename><update>Y</update></value>
+      <value><name>last_name</name><rename>last_name</rename><update>Y</update></value>
+      <value><name>gender</name><rename>gender</rename><update>Y</update></value>
+      <value><name>age</name><rename>age</rename><update>Y</update></value>
+      <value><name>age_band</name><rename>age_band</rename><update>Y</update></value>
+      <value><name>nationality</name><rename>nationality</rename><update>Y</update></value>
+    </lookup>
+    <cluster_schema/>
+    <remotesteps><input></input><output></output></remotesteps>
+    <GUI><xloc>500</xloc><yloc>100</yloc><draw>Y</draw></GUI>
+  </step>
+
+  <step_error_handling/>
+  <slave-step-copy-partition-distribution/>
+  <slave_transformation>N</slave_transformation>
+</transformation>

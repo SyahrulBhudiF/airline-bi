@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transformation>
+  <info>
+    <name>09_load_fact_daily_country_snapshot</name>
+    <description></description>
+    <extended_description/>
+    <trans_version/>
+    <trans_type>Normal</trans_type>
+    <directory>/</directory>
+    <parameters>
+
+    </parameters>
+    <log>
+      <trans-log-table><connection/><schema/><table/><size_limit_lines/><interval/><timeout_days/></trans-log-table>
+      <perf-log-table><connection/><schema/><table/><interval/><timeout_days/></perf-log-table>
+      <channel-log-table><connection/><schema/><table/><timeout_days/></channel-log-table>
+      <step-log-table><connection/><schema/><table/><timeout_days/></step-log-table>
+      <metrics-log-table><connection/><schema/><table/><timeout_days/></metrics-log-table>
+    </log>
+    <maxdate><connection/><table/><field/><offset>0</offset><maxdiff>0</maxdiff></maxdate>
+    <size_rowset>10000</size_rowset>
+    <sleep_time_empty>50</sleep_time_empty>
+    <sleep_time_full>50</sleep_time_full>
+    <unique_connections>N</unique_connections>
+    <feedback_shown>Y</feedback_shown>
+    <feedback_size>50000</feedback_size>
+    <using_thread_priorities>Y</using_thread_priorities>
+    <shared_objects_file/>
+    <capture_step_performance>N</capture_step_performance>
+    <step_performance_capturing_delay>1000</step_performance_capturing_delay>
+    <step_performance_capturing_size_limit>100</step_performance_capturing_size_limit>
+    <dependencies/>
+    <partitionschemas/>
+    <slaveservers/>
+    <clusterschemas/>
+    <created_user>-</created_user>
+    <created_date>2026/11/24 12:00:00.000</created_date>
+    <modified_user>-</modified_user>
+    <modified_date>2026/11/24 12:00:00.000</modified_date>
+    <key_for_session_key/>
+    <is_key_private>N</is_key_private>
+  </info>
+
+  <connection>
+    <name>OLTP</name>
+    <server>localhost</server>
+    <type>POSTGRESQL</type>
+    <access>Native</access>
+    <database>airline</database>
+    <port>5432</port>
+    <username>postgres</username>
+    <password>postgres</password>
+    <servername/>
+    <data_tablespace/>
+    <index_tablespace/>
+    <attributes>
+      <attribute><code>FORCE_IDENTIFIERS_TO_LOWERCASE</code><attribute>N</attribute></attribute>
+      <attribute><code>FORCE_IDENTIFIERS_TO_UPPERCASE</code><attribute>N</attribute></attribute>
+      <attribute><code>IS_CLUSTERED</code><attribute>N</attribute></attribute>
+      <attribute><code>PORT_NUMBER</code><attribute>5432</attribute></attribute>
+      <attribute><code>PRESERVE_RESERVED_WORD_CASE</code><attribute>N</attribute></attribute>
+      <attribute><code>QUOTE_ALL_FIELDS</code><attribute>N</attribute></attribute>
+      <attribute><code>SUPPORTS_BOOLEAN_DATA_TYPE</code><attribute>Y</attribute></attribute>
+      <attribute><code>SUPPORTS_TIMESTAMP_DATA_TYPE</code><attribute>Y</attribute></attribute>
+      <attribute><code>USE_POOLING</code><attribute>N</attribute></attribute>
+    </attributes>
+  </connection>
+  <connection>
+    <name>DW</name>
+    <server>localhost</server>
+    <type>POSTGRESQL</type>
+    <access>Native</access>
+    <database>airline</database>
+    <port>5432</port>
+    <username>postgres</username>
+    <password>postgres</password>
+    <servername/>
+    <data_tablespace/>
+    <index_tablespace/>
+    <attributes>
+      <attribute><code>FORCE_IDENTIFIERS_TO_LOWERCASE</code><attribute>N</attribute></attribute>
+      <attribute><code>FORCE_IDENTIFIERS_TO_UPPERCASE</code><attribute>N</attribute></attribute>
+      <attribute><code>IS_CLUSTERED</code><attribute>N</attribute></attribute>
+      <attribute><code>PORT_NUMBER</code><attribute>5432</attribute></attribute>
+      <attribute><code>PRESERVE_RESERVED_WORD_CASE</code><attribute>N</attribute></attribute>
+      <attribute><code>QUOTE_ALL_FIELDS</code><attribute>N</attribute></attribute>
+      <attribute><code>SUPPORTS_BOOLEAN_DATA_TYPE</code><attribute>Y</attribute></attribute>
+      <attribute><code>SUPPORTS_TIMESTAMP_DATA_TYPE</code><attribute>Y</attribute></attribute>
+      <attribute><code>USE_POOLING</code><attribute>N</attribute></attribute>
+    </attributes>
+  </connection>
+
+  <order>
+    <hop><from>Start</from><to>Read daily country snapshot</to><enabled>Y</enabled></hop>
+    <hop><from>Read daily country snapshot</from><to>Load fact_daily_country_snapshot</to><enabled>Y</enabled></hop>
+  </order>
+  <step>
+    <name>Start</name>
+    <type>Start</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <cluster_schema/>
+    <remotesteps><input></input><output></output></remotesteps>
+    <GUI><xloc>100</xloc><yloc>100</yloc><draw>Y</draw></GUI>
+  </step>
+  <step>
+    <name>Read daily country snapshot</name>
+    <type>TableInput</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <connection>OLTP</connection>
+    <sql>SELECT dd.date_key AS snapshot_date_key,
+       dc.country_key,
+       COUNT(f.flight_id)::int AS flight_count,
+       COALESCE(SUM(f.passenger_count), 0)::int AS passenger_count,
+       COALESCE(SUM(f.is_operated), 0)::int AS operated_flights,
+       COALESCE(SUM(f.is_on_time), 0)::int AS on_time_flights,
+       COALESCE(SUM(f.is_delayed), 0)::int AS delayed_flights,
+       COALESCE(SUM(f.is_cancelled), 0)::int AS cancelled_flights,
+       CASE WHEN COALESCE(SUM(f.is_operated), 0) = 0 THEN 0
+            ELSE ROUND(SUM(f.is_on_time)::numeric / SUM(f.is_operated), 4) END AS on_time_rate,
+       CASE WHEN COUNT(f.flight_id) = 0 THEN 0
+            ELSE ROUND(SUM(f.is_cancelled)::numeric / COUNT(f.flight_id), 4) END AS cancellation_rate
+FROM dw.dim_date dd
+CROSS JOIN dw.dim_country dc
+LEFT JOIN dw.fact_flight f
+       ON f.flight_date_key = dd.date_key
+      AND f.country_key = dc.country_key
+WHERE dd.year = 2022
+GROUP BY dd.date_key, dc.country_key</sql>
+    <limit/>
+    <lookup/>
+    <execute_each_row>N</execute_each_row>
+    <variables_active>Y</variables_active>
+    <lazy_conversion_active>N</lazy_conversion_active>
+    <cluster_schema/>
+    <remotesteps><input></input><output></output></remotesteps>
+    <GUI><xloc>250</xloc><yloc>100</yloc><draw>Y</draw></GUI>
+  </step>
+  <step>
+    <name>Load fact_daily_country_snapshot</name>
+    <type>TableOutput</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <connection>DW</connection>
+    <schema>dw</schema>
+    <table>fact_daily_country_snapshot</table>
+    <commit>5000</commit>
+    <truncate>Y</truncate>
+    <ignore_errors>N</ignore_errors>
+    <use_batch>Y</use_batch>
+    <specify_fields>N</specify_fields>
+    <partitioning_enabled>N</partitioning_enabled>
+    <partitioning_field/>
+    <partitioning_daily>N</partitioning_daily>
+    <partitioning_monthly>Y</partitioning_monthly>
+    <tablename_in_field>N</tablename_in_field>
+    <tablename_field/>
+    <tablename_in_table>Y</tablename_in_table>
+    <return_keys>N</return_keys>
+    <return_field/>
+    <fields></fields>
+    <cluster_schema/>
+    <remotesteps><input></input><output></output></remotesteps>
+    <GUI><xloc>750</xloc><yloc>100</yloc><draw>Y</draw></GUI>
+  </step>
+
+  <step_error_handling/>
+  <slave-step-copy-partition-distribution/>
+  <slave_transformation>N</slave_transformation>
+</transformation>

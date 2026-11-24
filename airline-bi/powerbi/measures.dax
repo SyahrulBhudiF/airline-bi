@@ -1,0 +1,145 @@
+-- ============================================================================
+--  Nusantara Air - Power BI DAX Measures
+--  Model : fact_flight, fact_daily_country_snapshot
+--          dim_date, dim_airport, dim_country, dim_passenger,
+--          dim_pilot, dim_flight_status
+--
+--  Cara pakai:
+--    Power BI Desktop -> Modeling -> New Measure -> paste satu measure.
+--    Atur Format: rates = Percentage (1 decimal), counts = Whole Number,
+--    age = Decimal (1 decimal).
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 1. VOLUME
+-- ----------------------------------------------------------------------------
+
+Total Flights = COUNTROWS ( fact_flight )
+
+Total Passengers = SUM ( fact_flight[passenger_count] )
+
+Operated Flights =
+CALCULATE ( [Total Flights], fact_flight[is_operated] = 1 )
+
+On-Time Flights =
+CALCULATE ( [Total Flights], fact_flight[is_on_time] = 1 )
+
+Delayed Flights =
+CALCULATE ( [Total Flights], fact_flight[is_delayed] = 1 )
+
+Cancelled Flights =
+CALCULATE ( [Total Flights], fact_flight[is_cancelled] = 1 )
+
+-- ----------------------------------------------------------------------------
+-- 2. KPI RATES
+--    Denominator on-time/delay = operated flights (cancelled excluded).
+--    Denominator cancellation  = all scheduled flight records.
+-- ----------------------------------------------------------------------------
+
+On-Time Rate =
+DIVIDE ( [On-Time Flights], [Operated Flights] )
+
+Delay Rate =
+DIVIDE ( [Delayed Flights], [Operated Flights] )
+
+Cancellation Rate =
+DIVIDE ( [Cancelled Flights], [Total Flights] )
+
+-- Share of on-time flights against ALL scheduled records (not only operated).
+On-Time Rate (All Scheduled) =
+DIVIDE ( [On-Time Flights], [Total Flights] )
+
+Flights per Day =
+DIVIDE ( [Total Flights], DISTINCTCOUNT ( dim_date[full_date] ) )
+
+-- ----------------------------------------------------------------------------
+-- 3. PASSENGER PROFILE
+-- ----------------------------------------------------------------------------
+
+Average Passenger Age =
+AVERAGE ( dim_passenger[age] )
+
+Passenger Share =
+DIVIDE (
+    [Total Passengers],
+    CALCULATE ( [Total Passengers], ALLSELECTED ( dim_passenger ) )
+)
+
+Male Passengers =
+CALCULATE ( [Total Passengers], dim_passenger[gender] = "Male" )
+
+Female Passengers =
+CALCULATE ( [Total Passengers], dim_passenger[gender] = "Female" )
+
+-- ----------------------------------------------------------------------------
+-- 4. TREND
+-- ----------------------------------------------------------------------------
+
+Rolling 30-Day Flights =
+CALCULATE (
+    [Total Flights],
+    DATESINPERIOD ( dim_date[full_date], MAX ( dim_date[full_date] ), -30, DAY )
+)
+
+Rolling 30-Day Cancellation Rate =
+CALCULATE (
+    [Cancellation Rate],
+    DATESINPERIOD ( dim_date[full_date], MAX ( dim_date[full_date] ), -30, DAY )
+)
+
+-- ----------------------------------------------------------------------------
+-- 5. PERIODIC SNAPSHOT (country x day, including zero-flight days)
+-- ----------------------------------------------------------------------------
+
+Snapshot Flights = SUM ( fact_daily_country_snapshot[flight_count] )
+
+Snapshot On-Time Rate =
+DIVIDE (
+    SUM ( fact_daily_country_snapshot[on_time_flights] ),
+    SUM ( fact_daily_country_snapshot[operated_flights] )
+)
+
+Snapshot Cancellation Rate =
+DIVIDE (
+    SUM ( fact_daily_country_snapshot[cancelled_flights] ),
+    SUM ( fact_daily_country_snapshot[flight_count] )
+)
+
+Average Daily Flights per Country =
+AVERAGE ( fact_daily_country_snapshot[flight_count] )
+
+Zero-Flight Country Days =
+CALCULATE (
+    COUNTROWS ( fact_daily_country_snapshot ),
+    fact_daily_country_snapshot[flight_count] = 0
+)
+
+-- ----------------------------------------------------------------------------
+-- 6. RANKING & TARGET
+-- ----------------------------------------------------------------------------
+
+Airport Rank =
+RANKX (
+    ALLSELECTED ( dim_airport[airport_name] ),
+    [Total Flights],
+    ,
+    DESC,
+    Dense
+)
+
+Country Rank =
+RANKX (
+    ALLSELECTED ( dim_country[country_name] ),
+    [Total Flights],
+    ,
+    DESC,
+    Dense
+)
+
+On-Time Target = 0.85
+
+Cancellation Target = 0.05
+
+On-Time Gap = [On-Time Rate] - [On-Time Target]
+
+Cancellation Gap = [Cancellation Rate] - [Cancellation Target]
